@@ -1,0 +1,53 @@
+<script setup lang="ts">
+import L from 'leaflet';
+import "leaflet/dist/leaflet.css";
+
+import { onMounted, ref } from "vue";
+
+let map = null;
+const mapContainer = ref(null);
+
+const renderMap = () => {
+    map = L.map(mapContainer.value, {
+        zoomControl: false,
+        maxZoom: 19,
+    }).setView([-15.811905321950647, -48.04429411863011], 5);
+
+    const streets = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            attribution: "© OpenStreetMap contributors",
+            maxZoom: 19
+        }
+    ).addTo(map);
+
+    fixConfigPopupAnimatedZomm()
+}
+
+const fixConfigPopupAnimatedZomm = () => {
+    L.Popup.prototype._animateZoom = function (e) {
+        if (!this._map)
+            return
+
+        const pos = this._map._latLngToNewLayerPoint(this._latlng, e.zoom, e.center),
+            anchor = this._getAnchor()
+        L.DomUtil.setPosition(this._container, pos.add(anchor))
+    }
+}
+
+onMounted(() => {
+    renderMap()
+})
+
+</script>
+
+<template>
+    <div class="map" ref="mapContainer"></div>
+</template>
+
+<style lang="scss" scoped>
+.map {
+    height: 100vh;
+    width: 100%;
+}
+</style>
