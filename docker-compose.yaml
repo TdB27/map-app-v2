@@ -1,0 +1,18 @@
+services:
+  web:
+    build:
+      context: .
+      target: build
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # Mantém o container vivo mesmo sem ter os scripts do Vite ainda
+    # command: npm run dev -- --host 0.0.0.0
+    # command: tail -f /dev/null
+    # restart: unless-stopped
+    command: sh -c "npm run dev -- --host 0.0.0.0"
+    restart: "no"
