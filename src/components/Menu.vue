@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 
 import { storeToRefs } from 'pinia';
 import { useFormStore } from '@/stores/form/form.store';
-const { FORM_DISPATCH } = useFormStore()
+const { FORM_DISPATCH, CLEAR_FORM_DISPATCH } = useFormStore()
 
 import vSelect from 'vue-select'
 
@@ -18,6 +18,11 @@ const selectedOption = ref(null)
 const handleSubmit = () => {
     const form_ = { ...form.value }
     FORM_DISPATCH(form_)
+}
+
+const clearForm = () => {
+    form.value = {}
+    CLEAR_FORM_DISPATCH()
 }
 </script>
 
@@ -69,6 +74,11 @@ const handleSubmit = () => {
                 <button type="submit" v-if="selectedOption"
                     class="w-full px-4 py-2 text-base font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition duration-200 active:scale-95">
                     Enviar
+                </button>
+
+                <button type="button" v-if="selectedOption" @click="clearForm"
+                    class="w-full px-4 py-2 text-base font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition duration-200 active:scale-95">
+                    Limpar
                 </button>
             </form>
         </div>
