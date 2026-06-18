@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import L from 'leaflet';
-import "leaflet/dist/leaflet.css";
+import { onMounted, ref, watch } from "vue";
 
-import { onMounted, ref } from "vue";
+import { storeToRefs } from 'pinia';
+import { useFormStore } from '../stores/form/form.store';
+const { FORM_STATE } = storeToRefs(useFormStore());
 
 let map = null;
 const mapContainer = ref(null);
@@ -38,6 +40,16 @@ const fixConfigPopupAnimatedZomm = () => {
 onMounted(() => {
     renderMap()
 })
+
+watch(
+    () => FORM_STATE.value?.linkWms,
+    (linkWms) => {
+        if(!linkWms && linkWms.length === 0)
+            return
+
+        console.log(linkWms)
+    }
+)
 
 </script>
 
