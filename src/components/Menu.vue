@@ -1,13 +1,23 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 
-import { storeToRefs } from 'pinia';
 import { useFormStore } from '@/stores/form/form.store';
 const { FORM_DISPATCH, CLEAR_FORM_DISPATCH } = useFormStore()
+import type QcFormInterface from '@/stores/form/form';
 
 import vSelect from 'vue-select'
 
-const form = ref({})
+const fieldsDefault: QcFormInterface = {
+    linkWms: null
+}
+
+const form = ref<QcFormInterface>({...fieldsDefault})
+
+const resetForm = () => {
+    form.value = { ...fieldsDefault }
+}
+
+onMounted(() => resetForm())
 
 const options = [
     { key: 'linkWms', label: 'Link WMS'}
@@ -21,7 +31,7 @@ const handleSubmit = () => {
 }
 
 const clearForm = () => {
-    form.value = {}
+    resetForm()
     CLEAR_FORM_DISPATCH()
 }
 </script>
@@ -36,7 +46,7 @@ const clearForm = () => {
             <form @submit.prevent="handleSubmit" class="space-y-6">
 
                 <div class="max-w-sm">                        
-                    <v-select v-model="selectedOption" :options="options" :reduce="option => option.key"
+                    <v-select v-model="selectedOption" :options="options" :reduce="(option: any) => option.key"
                         class="text-base text-gray-900 bg-white border border-gray-300 rounded-lg" 
                         placeholder="Selecione uma opção"/>
                 </div>

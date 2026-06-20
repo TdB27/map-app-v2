@@ -3,12 +3,12 @@ import L from 'leaflet';
 import { onMounted, ref, watch } from "vue";
 
 import { storeToRefs } from 'pinia';
-import { useFormStore } from '../stores/form/form.store';
+import { useFormStore } from '@/stores/form/form.store';
 const { FORM_STATE, CLEAR_FORM_STATE } = storeToRefs(useFormStore());
 const { FORM_DISPATCH } = useFormStore()
 
-let map = null;
-const mapContainer = ref(null);
+let map: L.Map | null = null;
+const mapContainer: any = ref(null);
 
 const renderMap = () => {
     map = L.map(mapContainer.value, {
@@ -16,7 +16,7 @@ const renderMap = () => {
         maxZoom: 19,
     }).setView([-15.811905321950647, -48.04429411863011], 5);
 
-    const streets = L.tileLayer(
+    L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
             attribution: "© OpenStreetMap contributors",
@@ -28,7 +28,7 @@ const renderMap = () => {
 }
 
 const fixConfigPopupAnimatedZomm = () => {
-    L.Popup.prototype._animateZoom = function (e) {
+    (L.Popup.prototype as any)._animateZoom = function (this: any, e: any) {
         if (!this._map)
             return
 
@@ -60,10 +60,10 @@ watch(
 
 watch(
     () => CLEAR_FORM_STATE.value,
-    (clearForm) => clearLayers()
+    (_) => clearLayers()
 )
 
-const extractSettingsWMS = (url) => {
+const extractSettingsWMS = (url: string) => {
     try {
         // 1. Cria um objeto URL para separar os parâmetros automaticamente
         const urlObj = new URL(url);
@@ -73,9 +73,9 @@ const extractSettingsWMS = (url) => {
         
         // 3. Cria um objeto de busca ignorando a diferença entre maiúsculas e minúsculas
         const params = new URLSearchParams(urlObj.search);
-        const options = {}
+        const options: Record<string, any> = {};
 
-        const ignoreParams = ['bbox', 'width', 'height', 'request', 'service'];
+        const ignoreParams = ['bbox', 'width', 'height', 'request', 'service', 'srs', 'crs'];
 
         for (let [key, value] of params.entries()) {
 
@@ -94,10 +94,10 @@ const extractSettingsWMS = (url) => {
             if(['layers', 'cql_filter', 'sld_body'].includes(key))
                 value = decodeURIComponent(value)
 
-            options[key] = value
+            options[finalKey] = value
         }
 
-        const srsOriginal = options.srs || options.SRS;
+        // const srsOriginal = options.srs || options.SRS;
 
         return {
             urlBase: urlBase,
@@ -109,8 +109,8 @@ const extractSettingsWMS = (url) => {
                 transparent: true,
                 minZoom: 6,
                 maxZoom: 20,
-                tileSize: 512,
-                zoomOffset: -1,
+                // tileSize: 512,
+                // zoomOffset: -1,
                 zIndex: 450,
             }
         };
@@ -121,16 +121,19 @@ const extractSettingsWMS = (url) => {
     }
 }
 
-const wmsLayer = ref(null)
+const wmsLayer = ref<L.TileLayer.WMS | null>(null)
 
 const clearLayers = () => {
-    if (wmsLayer.value) {
-        map.removeLayer(wmsLayer.value)
+    if (map && wmsLayer.value) {
+        map.removeLayer(wmsLayer.value as any)
     }
 }
 
-const renderWms = (objWms) => {
+const renderWms = (objWms: { urlBase: string, options: any }) => {
+    if (!map || !objWms) return
+
     clearLayers()
+
     wmsLayer.value = L.tileLayer.wms(objWms.urlBase, objWms.options).addTo(map)
 }
 

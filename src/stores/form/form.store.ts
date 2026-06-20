@@ -5,9 +5,10 @@ import type QcFormInterface from './form';
 // https://medium.com/@denis.ibanez.gdl/uma-estrutura-completa-com-vue3-parte-v-73cda36ab669
 
 export const useFormStore = defineStore('form', {
-	state: () => ({
+	// state: () => ({
+	state: (): { FORM_STATE: QcFormInterface; CLEAR_FORM_STATE: boolean } => ({
 		FORM_STATE: {
-			linkWms: ''
+			linkWms: null
 		},
 		CLEAR_FORM_STATE: false
 	}),
@@ -16,8 +17,14 @@ export const useFormStore = defineStore('form', {
 			this.FORM_STATE = payload;
 		},
 
+		CLEAR_FORM() {
+			this.FORM_DISPATCH({ 
+				linkWms: null
+			})
+		},
+
 		CLEAR_FORM_DISPATCH() {
-			this.FORM_DISPATCH({ linkWms: '' })
+			this.CLEAR_FORM()
 			this.CLEAR_FORM_STATE = !this.CLEAR_FORM_STATE;
 		},
 	},
