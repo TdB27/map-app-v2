@@ -17,6 +17,15 @@ export default defineConfig({
 			'@': fileURLToPath(new URL('./src', import.meta.url))
 		}
 	},
+	css: {
+		preprocessorOptions: {
+			scss: {
+				// Altere o caminho abaixo para a pasta exata onde está o seu _variables.scss
+				// O ';' no final é obrigatório!
+				additionalData: `@use "@/assets/styles/scss/_variables.scss" as *;` 
+			}
+		}
+	},
 	server: {
 		watch: {
 			usePolling: true,
