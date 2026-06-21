@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import L from 'leaflet';
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, shallowRef } from "vue";
 
 import { storeToRefs } from 'pinia';
 import { useFormStore } from '@/stores/form/form.store';
@@ -11,30 +11,28 @@ let map: L.Map | null = null;
 const mapContainer: any = ref(null);
 
 const renderMap = () => {
-    map = L.map(mapContainer.value, {
-        zoomControl: false,
-        maxZoom: 19,
-    }).setView([-15.811905321950647, -48.04429411863011], 5);
+    map = L.map(mapContainer.value, { zoomControl: false, maxZoom: 19 }).setView([-15.811905321950647, -48.04429411863011], 6);
 
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-            attribution: "© OpenStreetMap contributors",
-            maxZoom: 19
-        }
-    ).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap contributors",
+        maxZoom: 19
+    }).addTo(map);
 
     fixConfigPopupAnimatedZomm()
 }
 
 const fixConfigPopupAnimatedZomm = () => {
     (L.Popup.prototype as any)._animateZoom = function (this: any, e: any) {
-        if (!this._map)
+        if (!this._map || !this._map.options || !this._map.options.crs)
             return
 
-        const pos = this._map._latLngToNewLayerPoint(this._latlng, e.zoom, e.center),
-            anchor = this._getAnchor()
-        L.DomUtil.setPosition(this._container, pos.add(anchor))
+        try {
+            const pos = this._map._latLngToNewLayerPoint(this._latlng, e.zoom, e.center),
+                anchor = this._getAnchor()
+            L.DomUtil.setPosition(this._container, pos.add(anchor))
+        } catch (error: any) {
+            console.debug("Popup zoom animation ignored for detached layer.");
+        }
     }
 }
 
@@ -87,7 +85,7 @@ const extractSettingsWMS = (url: string) => {
             }
 
             let finalKey = key
-            if (['layers', 'styles', 'version', 'transparent', 'format'].includes(keyLower)) {
+            if (['layers', 'styles', 'version', 'transparent', 'format', 'cql_filter', 'sld_body'].includes(keyLower)) {
                 finalKey = keyLower;
             }
 
@@ -97,20 +95,15 @@ const extractSettingsWMS = (url: string) => {
             options[finalKey] = value
         }
 
-        // const srsOriginal = options.srs || options.SRS;
-
         return {
             urlBase: urlBase,
             options: {
                 ...options,
-                // srs: srsOriginal || 'EPSG:3857', 
-                srs: 'EPSG:3857', 
+                crs: L.CRS.EPSG3857,
                 format: 'image/png',
                 transparent: true,
                 minZoom: 6,
-                maxZoom: 20,
-                // tileSize: 512,
-                // zoomOffset: -1,
+                maxZoom: 19,
                 zIndex: 450,
             }
         };
@@ -121,20 +114,61 @@ const extractSettingsWMS = (url: string) => {
     }
 }
 
-const wmsLayer = ref<L.TileLayer.WMS | null>(null)
+const wmsLayer = shallowRef<L.TileLayer.WMS | null>(null)
+let pendingWmsTimeout: ReturnType<typeof setTimeout> | null = null
+let wmsRenderToken: number = 0
 
 const clearLayers = () => {
-    if (map && wmsLayer.value) {
-        map.removeLayer(wmsLayer.value as any)
+
+    wmsRenderToken++
+
+    if (pendingWmsTimeout) {
+        clearTimeout(pendingWmsTimeout)
+        pendingWmsTimeout = null
     }
+
+     if (!map || !wmsLayer.value) {
+        wmsLayer.value = null
+        return
+    }
+
+    const layer: L.TileLayer.WMS | null = wmsLayer.value
+
+    if (map.hasLayer(layer)) {
+        map.removeLayer(layer)
+    }
+
+    wmsLayer.value = null
 }
 
 const renderWms = (objWms: { urlBase: string, options: any }) => {
-    if (!map || !objWms) return
+     if (!map || !objWms) return
 
     clearLayers()
 
-    wmsLayer.value = L.tileLayer.wms(objWms.urlBase, objWms.options).addTo(map)
+    const currentToken: number = ++wmsRenderToken
+
+    /* 
+        CAMADA TESTE
+        https://atlas-geo.goinfra.go.gov.br/geoserver/sgp/wms?service=WMS&version=1.1.0&request=GetMap&layers=sgp%3Arodovia_segmentos&bbox=-53.202919006347656%2C-19.421871185302734%2C-46.01564025878906%2C-12.875435829162598&width=768&height=699&srs=EPSG%3A4674&styles=&format=application/openlayers
+    */
+
+    const layer: L.TileLayer.WMS = L.tileLayer.wms(objWms.urlBase, {
+        ...objWms.options,
+        pane: 'tilePane',
+        updateWhenZooming: false,
+        updateWhenIdle: true,
+        keepBuffer: 0,
+    })
+
+    if (currentToken !== wmsRenderToken || !map) {
+        return
+    }
+
+    wmsLayer.value = layer
+    layer.addTo(map)
+    
+
 }
 
 </script>
