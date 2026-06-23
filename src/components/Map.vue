@@ -7,6 +7,10 @@ import { useFormStore } from '@/stores/form/form.store';
 const { FORM_STATE, CLEAR_FORM_STATE } = storeToRefs(useFormStore());
 const { FORM_DISPATCH } = useFormStore()
 
+import { useLayersStore } from '@/stores/layers/layers.store';
+const { LAYERS_DISPATCH, REMOVE_LAYER_DISPATCH, REMOVE_ALL_LAYERS_DISPATCH } = useLayersStore()
+const { LAYERS_STATE } = storeToRefs(useLayersStore());
+
 let map: L.Map | null = null;
 const mapContainer: any = ref(null);
 
@@ -58,7 +62,7 @@ watch(
 
 watch(
     () => CLEAR_FORM_STATE.value,
-    (_) => clearLayers()
+    (_) => resetLayers()
 )
 
 const extractSettingsWMS = (url: string) => {
@@ -75,9 +79,14 @@ const extractSettingsWMS = (url: string) => {
 
         const ignoreParams = ['bbox', 'width', 'height', 'request', 'service', 'srs', 'crs'];
 
+        let verifyLayer: boolean = false
+
         for (let [key, value] of params.entries()) {
 
             const keyLower = key.toLowerCase();
+
+            if(keyLower === 'layers')
+                verifyLayer = true
 
             // Ignora os parâmetros de renderização únicos
             if (ignoreParams.includes(keyLower)) {
@@ -94,6 +103,9 @@ const extractSettingsWMS = (url: string) => {
 
             options[finalKey] = value
         }
+
+        if(!verifyLayer)
+            throw new Error("Não possui o atributos 'layers'");
 
         return {
             urlBase: urlBase,
@@ -114,37 +126,33 @@ const extractSettingsWMS = (url: string) => {
     }
 }
 
-const wmsLayer = shallowRef<L.TileLayer.WMS | null>(null)
-let pendingWmsTimeout: ReturnType<typeof setTimeout> | null = null
 let wmsRenderToken: number = 0
 
-const clearLayers = () => {
+const resetLayers = (layerName: string | null = null) => {
 
     wmsRenderToken++
 
-    if (pendingWmsTimeout) {
-        clearTimeout(pendingWmsTimeout)
-        pendingWmsTimeout = null
-    }
+     if (!map)
+        return
 
-     if (!map || !wmsLayer.value) {
-        wmsLayer.value = null
+    if(layerName === null) {
+        LAYERS_STATE.value.forEach(itemLayer => clearLayer(itemLayer.layerWms))
+        REMOVE_ALL_LAYERS_DISPATCH()
         return
     }
 
-    const layer: L.TileLayer.WMS | null = wmsLayer.value
+    const layer: L.TileLayer.WMS | null = LAYERS_STATE.value.find(itemLayer => itemLayer.layerName === layerName)
+    REMOVE_LAYER_DISPATCH(layer.layerName)
+    clearLayer(layer?.layerWms)
+}
 
-    if (map.hasLayer(layer)) {
+const clearLayer = (layer: L.TileLayer.WMS | null) => {
+    if (layer && map.hasLayer(layer))
         map.removeLayer(layer)
-    }
-
-    wmsLayer.value = null
 }
 
 const renderWms = (objWms: { urlBase: string, options: any }) => {
-     if (!map || !objWms) return
-
-    clearLayers()
+    if (!map || !objWms) return
 
     const currentToken: number = ++wmsRenderToken
 
@@ -165,10 +173,21 @@ const renderWms = (objWms: { urlBase: string, options: any }) => {
         return
     }
 
-    wmsLayer.value = layer
-    layer.addTo(map)
-    
+    const configLayer = objWms.options?.layers.split(':')
 
+    if(configLayer.length != 2) {
+        console.error("Erro ao encontrar o workspace e layer", configLayer, objWms.options?.layers)
+        return
+    }
+
+    LAYERS_DISPATCH({
+        layerWms: layer,
+        urlBase: objWms.urlBase,
+        workspace: configLayer[0],
+        layerName: configLayer[1]
+    })
+
+    layer.addTo(map)
 }
 
 </script>

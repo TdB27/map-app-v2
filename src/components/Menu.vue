@@ -32,11 +32,6 @@ const handleSubmit = () => {
     FORM_DISPATCH(form_)
 }
 
-const clearForm = () => {
-    resetForm()
-    CLEAR_FORM_DISPATCH()
-}
-
 const menuLgActived = ref<boolean>(false)
 
 const openMenu = () => {
@@ -50,6 +45,11 @@ const closeMenu = () => {
 const menuAction = (action: string) => {
     if(action === 'menuLgActived') {
         openMenu()
+        return
+    }
+
+    if(action === 'clearMap') {
+        CLEAR_FORM_DISPATCH()
         return
     }
 }
@@ -104,7 +104,7 @@ const menuAction = (action: string) => {
                         Enviar
                     </button>
 
-                    <button type="button" v-if="selectedOption" @click="clearForm"
+                    <button type="button" v-if="selectedOption" @click="resetForm"
                         class="w-full px-4 py-2 text-base font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition duration-200 active:scale-95">
                         Limpar
                     </button>
