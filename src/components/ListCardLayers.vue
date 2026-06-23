@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { BIconChevronDown } from 'bootstrap-icons-vue'
-import { ref } from 'vue'
 
 import { storeToRefs } from 'pinia';
 import { useLayersStore } from '@/stores/layers/layers.store';

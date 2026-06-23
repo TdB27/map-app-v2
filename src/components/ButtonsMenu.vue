@@ -7,7 +7,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits<{
-    (e: 'dispatchMenuAction', action: string)
+    (e: 'dispatchMenuAction', action: string): void
 }>()
 
 const dispatch = (action: string) => {

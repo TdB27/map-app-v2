@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import L from 'leaflet';
-import { onMounted, ref, watch, shallowRef } from "vue";
+import { onMounted, ref, watch } from "vue";
 
 import { storeToRefs } from 'pinia';
 import { useFormStore } from '@/stores/form/form.store';
@@ -136,18 +136,24 @@ const resetLayers = (layerName: string | null = null) => {
         return
 
     if(layerName === null) {
-        LAYERS_STATE.value.forEach(itemLayer => clearLayer(itemLayer.layerWms))
+        LAYERS_STATE.value.forEach(itemLayer => clearLayer(itemLayer?.layerWms))
         REMOVE_ALL_LAYERS_DISPATCH()
         return
     }
 
-    const layer: L.TileLayer.WMS | null = LAYERS_STATE.value.find(itemLayer => itemLayer.layerName === layerName)
-    REMOVE_LAYER_DISPATCH(layer.layerName)
-    clearLayer(layer?.layerWms)
+    const layer = LAYERS_STATE.value.find(itemLayer => itemLayer.layerName === layerName)
+
+    if(layer) {
+        clearLayer(layer?.layerWms)
+        REMOVE_LAYER_DISPATCH(layer?.layerName)
+    }
 }
 
 const clearLayer = (layer: L.TileLayer.WMS | null) => {
-    if (layer && map.hasLayer(layer))
+    if (!layer || !map)
+        return
+
+    if(map.hasLayer(layer))
         map.removeLayer(layer)
 }
 
@@ -182,10 +188,10 @@ const renderWms = (objWms: { urlBase: string, options: any }) => {
 
     LAYERS_DISPATCH({
         layerWms: layer,
-        urlBase: objWms.urlBase,
+        urlBase: objWms?.urlBase,
         workspace: configLayer[0],
         layerName: configLayer[1]
-    })
+    } as any)
 
     layer.addTo(map)
 }
